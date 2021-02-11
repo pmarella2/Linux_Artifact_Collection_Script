@@ -1,0 +1,100 @@
+#!./tools/bash
+
+#Live Response Artifact Collection Script
+#Author: Praneeth Marella
+#Built on Ubuntu Version 20.XX.XX
+#Intented to run on Ubuntu Version 20.XX.XX
+
+clear
+echo "Script is intended to be used during a Live Response to collect volatile and non-volatile data from Ubuntu Version 20.XX.XX"
+
+read -p "Input Investigator's Name: " investigator
+read -p "Case Name: " casename
+read -p "Enter Today's Date (MM-DD-YYYY): " datetoday
+read -p "Enter Current Time (HH:MM AM/PM): " currenttime
+
+system_date=`./tools/date`
+current_location=`./tools/pwd`
+
+save_path=($current_location/data/$casename)
+
+echo "Starting data collection..."
+
+echo "Recording current system and input date and timestamps..."
+echo "Starting System Date and Time (date):" >> $save_path.data
+echo "$system_date" >> $save_path.data
+echo "Recorded Date and Time (user input):" >> $save_path.data
+echo "$datetoday  $currenttime" >> $save_path.data
+
+echo "Collecting system login activity..."
+echo "Current logged on users (w):" >> $save_path.users_loggedin
+$current_location/tools/w >> $save_path.user_loggedin
+echo "All successful logins (last):" >> $save_path.success_logins
+$current_location/tools/last >> $save_path.success_logins
+echo "All unsucessful logins (lastb):" >> $save_path.bad_logins
+$current_location/tools/lastb >> $save_path.bad_logins
+echo "Last login information of each user (lastlog):" >> $save_path.last_login
+$current_location/tools/lastlog >> $save_path.last_login
+
+echo "Collecting current running processes..."
+echo "Current running processes (ps -aux):" >> $save_path.current_processes
+$current_location/tools/ps -aux >> $save_path.current_processes
+
+echo "Collecting system network data..."
+echo "System network interface details (ifconfig -a):" >> $save_path.ifconfig
+$current_location/tools/ifconfig -a >> $save_path.ifconfig
+$current_location/tools/ip addr list >> $save_path.ip
+echo "System network port data (netstat -anp):" >> $save_path.ports
+$current_location/tools/netstat -anp >> $save_path.ports
+echo "System routing table (netstat -rn):" >> $save_path.routing
+$current_location/tools/netstat -rn >> $save_path.routing
+echo "System ARP cache tables (arp -a):" >> $save_path.arp
+$current_location/tools/arp -a >> $save_path.arp
+
+echo "Collecting system specific information..."
+echo "System environment variable data (set):" >> $save_path.environment_vars
+set >> $save_path.environment_vars
+echo "List of mounted file systems (mount):" >> $save_path.mount_fs
+$current_location/tools/mount >> $savepath.mount_fs
+echo "List of open files (lsof -n):" >> $save_path.lsof
+$current_location/tools/lsof -n >> $savepath.lsof 2>$savepath.lsof_err
+echo "Directory listing - Access times (ls / -alRu):" >> $save_path.dir_access_times
+$current_location/tools/ls / -alRu >> $save_path.dir_access_times 2>$save_path.dir_access_times_err
+echo "Directory listing - Modified times (ls / -alR):" >> $save_path.dir_mod_times
+$current_location/tools/ls / -alR >> $save_path.dir_mod_times 2>$save_path.dir_mod_times_err
+echo "Directory listing - Creation times (ls / -alRc):" >> $save_path.dir_create_times
+$current_location/tools/ls / -alRc >> $save_path.dir_create_times 2>$save_path.dir_create_times_err
+
+echo "Collecting clipboard contents..."
+echo "Clipboard contents (xsel -b):" >> $save_path.clipboard_data
+$current_location/tools/xsel -b >> $save_path.clipboard_data
+
+echo "Collecting system information..."
+echo "System configuration information (uname -a):" >> $save_path.system_config
+$current_location/tools/uname -a >> $save_path.system_config
+echo "Currently loaded kernel modules (lsmod):" >> $save_path.loaded_kmods
+$current_location/tools/lsmod >> $save_path.loaded_kmods
+echo "Display or driver messages (dmesg -T):" >> $save_path.kernel_messages
+$current_location/tools/dmesg -T >> $save_path.kernel_messages
+
+echo "Collecting system logs..."
+$current_location/tools/mkdir -p $current_location/data/${casename}_var_log
+$current_location/tools/cp -r /var/log $current_location/data/${casename}_var_log
+$current_location/tools/mkdir -p $current_location/data/${casename}_startup_scripts
+$current_location/tools/cp -r /etc/init.d $current_location/data/${casename}_startup_scripts
+$current_location/tools/mkdir -p $current_location/data/${casename}_scheduled_tasks
+$current_location/tools/cp -r /etc/cron* $current_location/data/${casename}_scheduled_tasks
+$current_location/tools/cp /etc/passwd $current_location/data/$casename.passwd
+$current_location/tools/cp /etc/hosts $current_location/data/$casename.hosts
+$current_location/tools/cp /etc/hosts.allow $current_location/data/$casename.hosts_allow
+$current_location/tools/cp /etc/hosts.deny $current_location/data/$casename.hosts_deny
+
+echo "Recording file hashes..."
+#$current_location/tools/md5sum $current_location/data/* >> $current_location/data/md5sum.txt
+$current_location/tools/md5deep -r $current_location/data/* >> $current_location/data/${casename}.md5sum
+
+echo "Recording current system date and timestamp..."
+echo "Ending System Date and Time (date):" >> $save_path.data
+echo "$system_date" >> $save_path.data
+
+echo "Completed!"
